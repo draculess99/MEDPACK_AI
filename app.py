@@ -1,0 +1,111 @@
+import os
+import sys
+import subprocess
+import time
+
+# Automatically load variables from .env file into the environment
+if os.path.exists(".env"):
+    with open(".env") as f:
+        for line in f:
+            line = line.strip()
+            if line and "=" in line and not line.startswith("#"):
+                key, val = line.split("=", 1)
+                os.environ[key.strip()] = val.strip()
+
+from backend.data_loader import ensure_directories, load_or_generate_data, generate_inventory_state
+from backend.model import train_model
+
+# Default Ports
+BACKEND_PORT = int(os.environ.get("MEDPACK_BACKEND_PORT", 5001))
+FRONTEND_PORT = int(os.environ.get("MEDPACK_FRONTEND_PORT", 8502))
+FRONTEND_HOST = os.environ.get("MEDPACK_FRONTEND_HOST", "127.0.0.1")
+API_BASE_URL = os.environ.get("MEDPACK_API_BASE_URL", f"http://127.0.0.1:{BACKEND_PORT}")
+
+def main():
+    print("====================================================")
+    print("   Starting MedPack AI / MedAIM Setup & Services    ")
+    print("====================================================")
+    
+    # 1. Ensure all directories exist
+    ensure_directories()
+    
+    # 2. Build or load processed dataset
+    print("[1/3] Checking training datasets...")
+    df = load_or_generate_data()
+    generate_inventory_state()
+    print(f"Dataset ready. Total records: {len(df)}")
+    
+    # 3. Train ML Model if missing
+    print("[2/3] Checking XGBoost / fallback ML Model...")
+    model_file = "models/supply_demand_xgboost.pkl"
+    if not os.path.exists(model_file):
+        train_model()
+    else:
+        print("Model already exists. Skipping training.")
+        
+    # 4. Start Flask backend
+    print(f"[3/3] Launching Flask API Backend on port {BACKEND_PORT}...")
+    env = os.environ.copy()
+    env["MEDPACK_BACKEND_PORT"] = str(BACKEND_PORT)
+    
+    # Launch server
+    backend_proc = subprocess.Popen(
+        [sys.executable, "-m", "backend.server"],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    
+    # Wait for backend to start up
+    time.sleep(2)
+    
+    # 5. Start Streamlit frontend
+    print(f"Launching Streamlit Dashboard on port {FRONTEND_PORT}...")
+    env["MEDPACK_API_BASE_URL"] = API_BASE_URL
+    
+    # We can pass port and address directly to Streamlit
+    frontend_proc = subprocess.Popen(
+        [
+            sys.executable, "-m", "streamlit", "run", "frontend/dashboard.py",
+            "--server.port", str(FRONTEND_PORT),
+            "--server.address", FRONTEND_HOST,
+            "--server.headless", "false"
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    
+    print("\n----------------------------------------------------")
+    print(f"MedPack AI backend running at http://127.0.0.1:{BACKEND_PORT}")
+    print(f"MedPack AI dashboard running at http://127.0.0.1:{FRONTEND_PORT}")
+    print("----------------------------------------------------")
+    print("Press Ctrl+C to terminate both servers.")
+    print("----------------------------------------------------")
+    
+    # Monitor processes
+    try:
+        while True:
+            # Check backend output
+            if backend_proc.poll() is not None:
+                out, _ = backend_proc.communicate()
+                print(f"Backend terminated unexpectedly:\n{out}")
+                break
+                
+            if frontend_proc.poll() is not None:
+                out, _ = frontend_proc.communicate()
+                print(f"Frontend terminated unexpectedly:\n{out}")
+                break
+                
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nStopping services...")
+    finally:
+        backend_proc.terminate()
+        frontend_proc.terminate()
+        print("Services stopped.")
+
+if __name__ == "__main__":
+    main()
