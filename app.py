@@ -83,7 +83,7 @@ def main():
             sys.executable, "-m", "streamlit", "run", "frontend/dashboard.py",
             "--server.port", str(FRONTEND_PORT),
             "--server.address", FRONTEND_HOST,
-            "--server.headless", "false"
+            "--server.headless", "true"
         ],
         env=env
     )
