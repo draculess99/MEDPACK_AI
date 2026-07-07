@@ -141,26 +141,21 @@ def load_model_and_predict(telemetry):
     model = _MODEL_CACHE["model"]
     categories_maps = _MODEL_CACHE["categories_maps"]
         
-    # Build single-row DataFrame
-    df = pd.DataFrame([telemetry])
+    # Map categoricals using saved mappings and fill missing features
+    mapped_features = {}
     
-    # Map categoricals using saved mappings
     for col in CATEGORICAL_COLS:
-        val = str(df.at[0, col])
+        val = str(telemetry.get(col, ""))
         val_list = categories_maps.get(col, [])
         if val in val_list:
-            df.at[0, col] = val_list.index(val)
+            mapped_features[col] = float(val_list.index(val))
         else:
-            df.at[0, col] = -1 # Unseen category value
+            mapped_features[col] = -1.0 # Unseen category value
             
-    # Keep only target features
-    features = CATEGORICAL_COLS + NUMERICAL_COLS
-    # Fill missing with standard defaults
-    for col in features:
-        if col not in df.columns:
-            df[col] = 0
+    for col in NUMERICAL_COLS:
+        mapped_features[col] = float(telemetry.get(col, 0.0))
             
-    df_features = df[features].astype(float)
+    df_features = pd.DataFrame([mapped_features])
     
     prediction = model.predict(df_features)[0]
     return max(0.0, float(prediction))
