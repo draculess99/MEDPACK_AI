@@ -1,20 +1,24 @@
 # MedPack AI
 
-## Hospital Supply Shortage Prediction & Packing Priority Control Tower
+## Agentic Hospital Supply Shortage Prediction & Packing Priority Control Tower
 
-**MedPack AI** predicts hospital supply demand, detects true shortage risk, and turns that risk into a warehouse packing and escalation plan before the shortage reaches the bedside.
+**MedPack AI** predicts which hospital supplies may run short in the next 24 hours, checks whether the stock is truly usable, ranks what the warehouse should pack first, and generates a command-center action plan before the shortage reaches the bedside.
 
-It combines a **Streamlit dashboard**, **Flask API**, **XGBoost/fallback machine-learning forecast**, **usable-stock shortage rules**, **packing optimization**, **RAG-backed SOP guidance**, **JSON memory**, and an **agentic decision committee**.
+It combines a **Streamlit dashboard**, **Flask API**, **machine-learning demand forecast**, **usable-stock rules**, **packing optimization**, **RAG-style SOP guidance**, **JSON memory**, and a **local zero-token agentic decision committee**.
 
-![MedPack AI architecture and data flow](docs/medpack_ai_architecture.png)
+> **Core idea:** MedPack AI does not stop at prediction. It turns prediction into operational action.
+
+```text
+forecast -> shortage risk -> packing queue -> escalation plan -> audit memory
+```
 
 ---
 
-## The Problem
+## Why This Matters
 
-Hospitals can have enough staff and still break operationally if critical supplies are not available where and when they are needed.
+Hospitals can have enough staff and still slow down if critical supplies are missing, expired, recalled, reserved, or stuck in the wrong location.
 
-A supply shortage can create delays in:
+A supply shortage can delay:
 
 - IV access
 - wound care
@@ -25,68 +29,289 @@ A supply shortage can create delays in:
 - emergency department flow
 - surgery and ICU readiness
 
-In practice, nurses and techs lose time hunting for supplies, substituting items, escalating to supervisors, or waiting on central supply. That delay becomes a patient-flow and patient-safety problem.
+In real operations, nurses and techs may lose time hunting for supplies, substituting items, calling supervisors, or waiting for central supply. MedPack AI is designed to catch those risks early and push the answer into a warehouse-ready action plan.
 
-**MedPack AI tackles this by connecting demand forecasting directly to warehouse action.**
+Instead of only answering:
 
-Instead of only saying, “this item may run short,” the system answers:
+> “Will we run short?”
 
-> What item is at risk, where is it needed, how urgent is it, how much should we pack, what backup actions exist, and when should we escalate?
+MedPack AI answers:
+
+> “What item is at risk, where is it needed, how urgent is it, how much should we pack, what backup options exist, who owns the action, and when should we escalate?”
 
 ---
 
-## What the System Does
+## Project Snapshot
 
-MedPack AI converts hospital operational telemetry into a control-tower decision packet.
+| Area | What MedPack AI Does |
+|---|---|
+| **Forecasting** | Predicts next-24-hour supply usage using XGBoost/fallback ML logic. |
+| **Inventory safety** | Checks true usable stock, excluding expired, recalled, unsafe, or reserved inventory. |
+| **Shortage risk** | Classifies supply risk as Low, Medium, High, or Critical. |
+| **Packing priority** | Ranks what the warehouse should pack first based on shortage gap, clinical criticality, acuity, supplier delay, and pack time. |
+| **Agentic AI** | Runs a local deterministic agent committee to explain demand, inventory risk, packing priority, clinical safety, and final action. |
+| **RAG-style guidance** | Uses SOP, recall, substitution, and escalation context to explain recommendations. |
+| **Command center** | Produces owner, priority code, escalation window, action card, and audit checklist. |
+| **Simulation** | Stress-tests the plan under ED surge, ICU spike, supplier delay, flu season, weekend constraint, mass casualty mode, and surgery spike. |
+| **Memory** | Stores rolling usage, prediction deltas, and decision events in JSON. |
+| **Privacy** | Uses no PHI. It works on operational supply-chain signals only. |
 
-```text
-Hospital operational signals
-        ↓
-24-hour demand forecast
-        ↓
-Usable-stock shortage-risk analysis
-        ↓
-Packing priority optimizer
-        ↓
-RAG-supported agent committee
-        ↓
-Command-center action plan
-        ↓
-JSON memory / audit feedback loop
+---
+
+## Architecture Overview
+
+```mermaid
+graph TD
+    A[Hospital Operational Signals] --> B[Streamlit Dashboard]
+    B --> C[Flask API]
+
+    C --> D[24-Hour Demand Forecast]
+    C --> E[Usable Stock Analysis]
+    C --> F[Shortage Risk Rules]
+    C --> G[Packing Priority Optimizer]
+    C --> H[RAG / SOP Context]
+    C --> I[Agentic Decision Committee]
+    C --> J[Command Center Packet]
+    C --> K[JSON Memory / Audit Log]
+
+    D --> F
+    E --> F
+    F --> G
+    G --> I
+    H --> I
+    I --> J
+    J --> K
+    K --> B
 ```
 
-The output is not just a prediction. It is a practical recommendation for a hospital supply room, warehouse, command center, or operations team.
+---
+
+## Beginner-Friendly Explanation
+
+Think of MedPack AI like a hospital supply-room control tower.
+
+1. The dashboard asks for hospital conditions: department, item, stock level, patient volume, acuity, recent usage, supplier delay, and other operational signals.
+2. The backend predicts how much of that item may be needed in the next 24 hours.
+3. The system checks how much stock is actually usable, not just how much appears in the inventory database.
+4. It calculates the shortage gap and risk level.
+5. It ranks which supplies should be packed first.
+6. It checks simulated SOP, recall, supplier, substitute, and escalation guidance.
+7. It produces a command-center recommendation: pack, transfer, substitute, escalate, monitor, or reorder.
+8. It saves a memory/audit event so the system can track what happened later.
+
+---
+
+## End-to-End Data Flow
+
+```mermaid
+flowchart LR
+    I1[Department] --> X[Input Packet]
+    I2[Item Name / Category] --> X
+    I3[Current Stock] --> X
+    I4[Patient Volume] --> X
+    I5[Acuity Level] --> X
+    I6[Procedure Count] --> X
+    I7[Recent Usage Rate] --> X
+    I8[Supplier Delay] --> X
+    I9[Clinical Criticality] --> X
+
+    X --> M[ML Forecast Model]
+    M --> P[Predicted 24h Demand]
+
+    X --> U[Usable Stock Engine]
+    U --> S[Usable Stock]
+
+    P --> R[Shortage Risk Engine]
+    S --> R
+    R --> Q[Packing Queue]
+    Q --> C[Command Center Action Plan]
+    C --> A[Audit / Memory Files]
+```
+
+---
+
+## Main Application Pipeline
+
+```mermaid
+flowchart TD
+    Start([User opens dashboard]) --> Input[Select department, item, stock, volume, acuity, and supplier conditions]
+    Input --> Predict[Predict 24-hour usage]
+    Predict --> Usable[Calculate true usable stock]
+    Usable --> Risk[Classify shortage risk]
+    Risk --> Pack[Generate packing priority]
+    Pack --> Transfer[Check transfer, supplier, and substitute options]
+    Transfer --> ROI[Estimate cost, waste, and emergency-order exposure]
+    ROI --> Command[Build command-center action card]
+    Command --> Agents[Run local agent committee]
+    Agents --> Output[Show recommendation, owner, escalation window, and Top 5 packing queue]
+    Output --> Memory[Save JSON memory and audit event]
+```
+
+---
+
+## Code Architecture
+
+```mermaid
+graph TD
+    UI[frontend/dashboard.py<br/>Streamlit UI] --> API[backend/server.py<br/>Flask API]
+
+    API --> Model[backend/model.py<br/>Demand Forecast]
+    API --> Shortage[backend/shortage_rules.py<br/>Risk Classification]
+    API --> Usable[backend/usable_stock.py<br/>True Usable Inventory]
+    API --> Packing[backend/packing_optimizer.py<br/>Packing Recommendation]
+    API --> Queue[backend/packing_queue.py<br/>Top 5 Queue]
+    API --> Trace[backend/traceability.py<br/>UDI / Lot / Expiry Logic]
+
+    API --> Transfer[backend/transfer_optimizer.py<br/>Internal Transfer]
+    API --> Supplier[backend/supplier_risk.py<br/>Supplier Delay Risk]
+    API --> Substitute[backend/substitution_engine.py<br/>Substitute Options]
+    API --> ROI[backend/stage4_roi.py<br/>Cost / Waste / ROI]
+    API --> Command[backend/stage5_command_center.py<br/>Action Cards / Escalation]
+    API --> WhatIf[backend/stage6_whatif_simulator.py<br/>Surge Simulator]
+
+    API --> RAG[backend/rag_manager.py<br/>SOP / Recall / SLA Context]
+    API --> Agents[backend/agents/adk_agents.py<br/>Agent Wrappers]
+    API --> Fast[backend/fast_committee.py<br/>Fast Local Committee]
+    API --> Memory[backend/supply_memory.py<br/>JSON Memory]
+```
+
+---
+
+## Stage-by-Stage System Design
+
+| Stage | Name | Purpose |
+|---:|---|---|
+| **1** | Traceability Layer | Adds lot, UDI, barcode, expiration, recall, PAR, and packing-task lifecycle logic. |
+| **2** | Usable-Stock Control | Prevents the system from approving stock that exists on paper but is expired, recalled, unsafe, reserved, or unavailable. |
+| **3** | Supplier / Transfer Intelligence | Checks supplier risk, internal transfers, emergency ordering, and substitute supply options. |
+| **4** | Cost, Waste, and ROI | Estimates shortage dollars at risk, waste exposure, emergency premium, carrying cost, and executive value impact. |
+| **5** | Agentic Command Center | Converts analysis into priority codes, owners, escalation windows, action cards, and audit checklists. |
+| **6** | What-If Simulator | Stress-tests the system under surge and disruption scenarios. |
+
+---
+
+## Agentic Decision Committee
+
+The local agent committee is designed to behave like a hospital operations huddle.
+
+```mermaid
+flowchart TD
+    Packet[Supply Risk Packet] --> Demand[Demand Forecast Agent]
+    Packet --> Inventory[Inventory Risk Agent]
+    Packet --> Packing[Packing Priority Agent]
+    Packet --> Safety[Clinical Safety Agent]
+
+    Demand --> Final[Final Recommendation Agent]
+    Inventory --> Final
+    Packing --> Final
+    Safety --> Final
+
+    Final --> Summary[Committee Summary]
+    Summary --> Action[Command-Center Recommendation]
+```
+
+| Agent | Responsibility |
+|---|---|
+| **Demand Forecast Agent** | Explains the predicted next-24-hour demand. |
+| **Inventory Risk Agent** | Checks usable stock, shortage gap, and coverage ratio. |
+| **Packing Priority Agent** | Converts risk into pack quantity and queue priority. |
+| **Clinical Safety Agent** | Explains bedside, patient-flow, and department risk. |
+| **Final Recommendation Agent** | Produces the final action plan. |
+| **Committee Summarizer** | Condenses the decision into an executive-readable summary. |
+
+By default, the committee is deterministic and local, so it costs **zero LLM tokens**.
+
+```env
+DEFAULT_AGENT_MODE=local
+USE_LLM_AGENTS=false
+```
+
+Optional remote LLM mode can be configured for Groq/Gemini-style summaries, but the app is designed to run without paid token usage.
+
+---
+
+## RAG / SOP Guidance Layer
+
+MedPack AI includes a lightweight retrieval layer for operational context.
+
+Examples of guidance that can influence the recommendation:
+
+- supply-room SOPs
+- supplier service-level agreements
+- recall warnings
+- substitution rules
+- escalation policies
+- department-specific restrictions
+
+This matters because supply-chain decisions are not purely numerical. A hospital may have stock on paper, but the safest action may still be to escalate, transfer, substitute, or avoid the item entirely.
+
+Example policy logic:
+
+```text
+Do not use recalled stock.
+Do not count expired supplies as usable.
+Use internal transfer before paying emergency supplier premium.
+Escalate critical ICU/PPE/oxygen shortages quickly.
+Do not substitute clinically restricted items without review.
+```
+
+---
+
+## What Happens When the User Clicks Predict
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Streamlit Dashboard
+    participant API as Flask API
+    participant Model as Forecast Model
+    participant Stock as Usable Stock Engine
+    participant Rules as Shortage Rules
+    participant Queue as Packing Optimizer
+    participant Agents as Agent Committee
+    participant Memory as JSON Memory
+
+    User->>UI: Enter supply and hospital conditions
+    UI->>API: POST /api/run-medpack-committee-fast
+    API->>Model: Predict next 24h demand
+    API->>Stock: Calculate usable stock
+    API->>Rules: Classify shortage risk
+    API->>Queue: Rank packing priority
+    API->>Agents: Generate explanation and final action
+    API->>Memory: Save decision event
+    API-->>UI: Return risk, queue, explanation, and action card
+    UI-->>User: Display command-center recommendation
+```
 
 ---
 
 ## Core Features
 
-- **24-hour supply demand forecasting** using XGBoost, with fallback logic so the demo remains stable.
-- **True usable-stock analysis** that excludes expired, recalled, task-reserved, unsafe, or unavailable inventory.
+- **24-hour supply demand forecasting** using XGBoost with fallback logic for demo stability.
+- **True usable-stock analysis** that excludes expired, recalled, reserved, unsafe, or unavailable inventory.
 - **Shortage-risk classification** into `Low`, `Medium`, `High`, and `Critical`.
 - **Packing-priority optimizer** that ranks supplies by shortage gap, clinical criticality, acuity, supplier delay, usage rate, pack time, and department importance.
 - **Top 5 Supplies to Pack First** queue driven by the backend pipeline.
-- **Stage 1 traceability layer** for lot, UDI, barcode, expiration, recall, scan event, PAR, and packing task lifecycle logic.
-- **Stage 2 usable-stock control** so the app does not falsely approve stock that is technically present but operationally unavailable.
-- **Stage 3 supplier/transfer intelligence** to evaluate internal transfers, supplier risk, and substitute options.
-- **Stage 4 cost, waste, and ROI executive dashboard** for shortage dollars at risk, waste exposure, emergency-order premium, carrying cost, and value impact.
-- **Stage 5 agentic command center** that converts analysis into priority codes, owners, escalation windows, action cards, and audit checklist.
-- **Stage 6 what-if surge simulator** for ED surge, ICU spike, flu season, supplier delay, mass casualty mode, weekend constraint, and surgery schedule spike.
-- **RAG knowledge layer** using ChromaDB-backed SOPs, supplier SLAs, recall notes, substitution rules, and escalation policies.
-- **Agentic decision committee** for demand, inventory risk, packing priority, clinical safety, and final recommendation.
-- **Local zero-token mode** by default, with optional remote LLM mode for Groq/Gemini summaries.
+- **Traceability layer** for lot, UDI, barcode, expiration, recall, scan event, PAR, and packing task lifecycle logic.
+- **Supplier/transfer intelligence** for internal transfers, supplier risk, and substitute options.
+- **Cost, waste, and ROI dashboard** for shortage dollars at risk, waste exposure, emergency-order premium, carrying cost, and value impact.
+- **Agentic command center** that converts analysis into priority codes, owners, escalation windows, action cards, and audit checklists.
+- **What-if surge simulator** for ED surge, ICU spike, flu season, supplier delay, mass casualty mode, weekend constraint, and surgery schedule spike.
+- **RAG-style knowledge layer** using SOPs, supplier SLAs, recall notes, substitution rules, and escalation policies.
+- **JSON memory feedback loop** for trend tracking and audit events.
 - **No-PHI design** using operational signals only.
 
 ---
 
-## How the Data Flows
+## Data Design
 
-### 1. Operational Inputs
+MedPack AI uses operational data rather than patient-identifiable data.
 
-The dashboard collects or simulates hospital supply-chain signals:
+Example inputs:
 
 - department
-- item name and item category
+- item name
+- item category
 - current stock
 - patient volume
 - acuity level
@@ -99,169 +324,7 @@ The dashboard collects or simulates hospital supply-chain signals:
 - pack time
 - day, hour, and season
 
-### 2. Forecasting Layer
-
-`backend/model.py` predicts `actual_usage_next_24h`.
-
-The preferred model is **XGBoost**. If XGBoost or the saved model is not available, the project falls back safely so the dashboard can still run as a portfolio demo.
-
-### 3. Shortage-Risk Layer
-
-`backend/shortage_rules.py` compares forecast demand against available stock.
-
-Stage 2 improves this by using **usable stock**, not just raw inventory.
-
-```text
-usable_stock = total_stock - expired_stock - recalled_stock - reserved_stock - unsafe_stock
-shortage_gap = predicted_24h_demand - usable_stock
-coverage_ratio = usable_stock / predicted_24h_demand
-```
-
-This matters because a hospital may appear to have stock in the database while the real usable quantity is much lower.
-
-### 4. Packing Optimization Layer
-
-`backend/packing_optimizer.py` and `backend/packing_queue.py` turn shortage risk into action:
-
-- priority score
-- recommended pack quantity
-- estimated warehouse work
-- escalation flag
-- plain-English packing instruction
-- Top 5 queue ranking
-
-### 5. RAG + Agentic Decision Layer
-
-`backend/rag_manager.py` loads mock operational knowledge into ChromaDB.
-
-The knowledge base includes examples such as:
-
-- supply-room SOPs
-- supplier service-level agreements
-- recall warnings
-- substitution guidance
-- escalation rules
-- department-specific policies
-
-The agent committee can retrieve this context and use it to explain decisions. This is useful because a hospital supply decision is not only numerical. It may depend on policies such as:
-
-- “Do not use recalled stock.”
-- “Do not substitute this item in the ICU.”
-- “Escalate when coverage falls below a critical threshold.”
-- “Use internal transfer before paying emergency supplier premium.”
-
-### 6. Memory Feedback Loop
-
-`backend/supply_memory.py` stores operational memory in JSON files:
-
-```text
-database/supply_memory_state.json
-database/supply_memory_events.jsonl
-```
-
-This lets the system remember rolling usage, trend direction, prediction deltas, and prior decisions.
-
----
-
-## Agentic AI Design
-
-The agentic committee is designed to behave like a hospital operations huddle.
-
-| Agent | Responsibility |
-|---|---|
-| Demand Forecast Agent | Interprets the 24-hour demand prediction. |
-| Inventory Risk Agent | Checks true usable stock and shortage gap. |
-| Packing Priority Agent | Converts risk into pack quantity and queue priority. |
-| Clinical Safety Agent | Explains patient-flow and bedside risk. |
-| Final Recommendation Agent | Produces the final action plan. |
-| Committee Summarizer | Condenses the decision into an executive summary. |
-
-By default, this is deterministic and local, so it costs **zero LLM tokens**.
-
-Remote LLM mode is optional and only runs when explicitly configured.
-
-```env
-DEFAULT_AGENT_MODE=local
-USE_LLM_AGENTS=false
-```
-
----
-
-## App Architecture
-
-```mermaid
-graph TD
-    UI["frontend/dashboard.py<br/>(Streamlit)"] --> API["backend/server.py<br/>(Flask API)"]
-    
-    API --> Forecast["backend/model.py<br/>ML demand forecast"]
-    API --> Shortage["backend/shortage_rules.py<br/>shortage thresholds"]
-    API --> Usable["backend/usable_stock.py<br/>true usable inventory"]
-    API --> Priority["backend/packing_optimizer.py<br/>priority logic"]
-    API --> Trace["backend/traceability.py<br/>UDI & batch lifecycle"]
-    
-    API --> Action["backend/stage3_action_plan.py<br/>supplier and transfer"]
-    API --> ROI["backend/stage4_roi.py<br/>waste and cost"]
-    API --> Cmd["backend/stage5_command_center.py<br/>escalation and owners"]
-    API --> Sim["backend/stage6_whatif_simulator.py<br/>stress testing"]
-    
-    API --> RAG["backend/rag_manager.py<br/>mock document DB"]
-    API --> Agents["backend/agents/adk_agents.py<br/>LLM committee wrappers"]
-
-    Forecast --> Shortage
-    Usable --> Shortage
-    Shortage --> Priority
-    Priority --> Action
-    Action --> ROI
-    ROI --> Cmd
-    Cmd --> Agents
-    RAG --> Agents
-```
-
----
-
-## Screenshots
-
-To showcase the system for a portfolio, we recommend saving your screenshots to a `docs/` folder and linking them here:
-
-- `![Dashboard Overview](docs/dashboard_overview.png)` - *Show the main supply list and telemetry panel.*
-- `![Committee Output](docs/committee_output.png)` - *Show the Final Recommendation Agent and RAG injection.*
-- `![Cost & Waste Analysis](docs/stage4_roi.png)` - *Show the Stage 4 ROI metrics.*
-
----
-
-## Key API Endpoints
-
-| Endpoint | Method | Purpose |
-|---|---:|---|
-| `/health` | GET | Backend health check |
-| `/api/inventory` | GET | Inventory snapshot |
-| `/api/packing-queue` | GET/POST | Ranked supplies to pack first |
-| `/api/predict-supply-demand` | POST | 24-hour supply demand forecast |
-| `/api/shortage-risk` | POST | Shortage-risk classification |
-| `/api/usable-stock-analysis` | POST | Stage 2 true usable-stock analysis |
-| `/api/packing-priority` | POST | Packing recommendation |
-| `/api/run-medpack-committee` | POST | Full committee pipeline |
-| `/api/run-medpack-committee-fast` | POST | Fast local committee packet |
-| `/api/supply-memory` | GET | Current memory state |
-| `/api/update-supply-memory` | POST | Update memory from actual usage |
-| `/api/compliance-alerts` | GET/POST | PAR, expiry, recall, and cold-chain alerts |
-| `/api/scan-event` | POST | Simulate barcode/UDI stock movement |
-| `/api/par-recommendation` | POST | Dynamic PAR/max-stock recommendation |
-| `/api/packing-tasks` | GET/POST/PATCH | Packing task lifecycle |
-| `/api/transfer-recommendation` | POST | Stage 3 internal transfer recommendation |
-| `/api/supplier-risk` | POST | Stage 3 supplier-risk analysis |
-| `/api/substitute-options` | POST | Stage 3 substitute supply options |
-| `/api/stage4-roi-analysis` | POST | Cost, waste, and ROI analysis |
-| `/api/stage5-command-center` | POST | Final command-center packet |
-| `/api/stage6-whatif-simulator` | POST | Surge/stress-test simulation |
-
----
-
-## Data Design
-
-The project uses no-PHI operational data.
-
-Example data locations:
+Example project data locations:
 
 ```text
 database/raw/kaggle_hospital_supply_chain.csv
@@ -272,9 +335,23 @@ database/substitution_rules.json
 database/escalation_playbooks.json
 database/scenario_playbooks.json
 database/cost_assumptions.json
+database/supply_memory_state.json
+database/supply_memory_events.jsonl
 ```
 
-The app can run with synthetic data. If a Kaggle-style hospital supply-chain CSV is available, the loader maps available fields and fills gaps needed for the simulation.
+---
+
+## Shortage Logic
+
+The key safety improvement is that MedPack AI does not blindly trust total stock.
+
+```text
+usable_stock = total_stock - expired_stock - recalled_stock - reserved_stock - unsafe_stock
+shortage_gap = predicted_24h_demand - usable_stock
+coverage_ratio = usable_stock / predicted_24h_demand
+```
+
+That distinction matters because a hospital may appear to have enough stock in the database while the real usable quantity is much lower.
 
 ---
 
@@ -294,11 +371,39 @@ It only uses high-level operational signals such as department, patient volume, 
 
 ---
 
+## Key API Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---:|---|
+| `/health` | GET | Backend health check |
+| `/api/inventory` | GET | Inventory snapshot |
+| `/api/packing-queue` | GET/POST | Ranked supplies to pack first |
+| `/api/predict-supply-demand` | POST | 24-hour supply demand forecast |
+| `/api/shortage-risk` | POST | Shortage-risk classification |
+| `/api/usable-stock-analysis` | POST | True usable-stock analysis |
+| `/api/packing-priority` | POST | Packing recommendation |
+| `/api/run-medpack-committee` | POST | Full committee pipeline |
+| `/api/run-medpack-committee-fast` | POST | Fast local committee packet |
+| `/api/supply-memory` | GET | Current memory state |
+| `/api/update-supply-memory` | POST | Update memory from actual usage |
+| `/api/compliance-alerts` | GET/POST | PAR, expiry, recall, and cold-chain alerts |
+| `/api/scan-event` | POST | Simulate barcode/UDI stock movement |
+| `/api/par-recommendation` | POST | Dynamic PAR/max-stock recommendation |
+| `/api/packing-tasks` | GET/POST/PATCH | Packing task lifecycle |
+| `/api/transfer-recommendation` | POST | Internal transfer recommendation |
+| `/api/supplier-risk` | POST | Supplier-risk analysis |
+| `/api/substitute-options` | POST | Substitute supply options |
+| `/api/stage4-roi-analysis` | POST | Cost, waste, and ROI analysis |
+| `/api/stage5-command-center` | POST | Final command-center packet |
+| `/api/stage6-whatif-simulator` | POST | Surge/stress-test simulation |
+
+---
+
 ## How to Run Locally
 
-### Windows quick start
+### Windows Quick Start
 
-Use the launcher at the project root:
+From the project root:
 
 ```bat
 RUN_ME.bat
@@ -306,7 +411,7 @@ RUN_ME.bat
 
 This installs dependencies, prepares data/model assets if needed, starts the Flask backend, and starts the Streamlit dashboard.
 
-### Manual run
+### Manual Run
 
 Install dependencies:
 
@@ -327,20 +432,20 @@ Dashboard: http://127.0.0.1:8502
 Backend:   http://127.0.0.1:5001/health
 ```
 
-### Debug mode on Windows
+### Debug Mode on Windows
 
 ```bat
 RUN_BACKEND.bat
 RUN_FRONTEND.bat
 ```
 
-### Run tests
+### Run Tests
 
 ```bash
 pytest
 ```
 
-or on Windows:
+or:
 
 ```bat
 RUN_TESTS.bat
@@ -350,9 +455,9 @@ RUN_TESTS.bat
 
 ## Deployment Notes
 
-MedPack AI is designed for a split frontend/backend deployment.
+MedPack AI is designed for split frontend/backend deployment.
 
-### Backend service
+### Backend Service
 
 Typical health check:
 
@@ -360,7 +465,7 @@ Typical health check:
 /health
 ```
 
-### Frontend service
+### Frontend Service
 
 Set the frontend environment variable to the deployed backend URL:
 
@@ -368,13 +473,43 @@ Set the frontend environment variable to the deployed backend URL:
 MEDPACK_API_BASE_URL=https://YOUR-BACKEND-DOMAIN
 ```
 
-See [`DEPLOYMENT.md`](DEPLOYMENT.md) for a fuller cloud deployment guide.
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for a fuller deployment guide.
 
 ---
 
-## Why This Is Useful as a Portfolio Project
+## Screenshots / Demo Images
 
-This project demonstrates more than a basic dashboard.
+Recommended files to add later:
+
+```text
+docs/dashboard_overview.png
+docs/committee_output.png
+docs/stage4_roi.png
+docs/whatif_simulator.png
+docs/command_center.png
+```
+
+Suggested README image links:
+
+```md
+![Dashboard Overview](docs/dashboard_overview.png)
+![Committee Output](docs/committee_output.png)
+![Cost and ROI Dashboard](docs/stage4_roi.png)
+![What-If Simulator](docs/whatif_simulator.png)
+![Command Center](docs/command_center.png)
+```
+
+Recommended PDF guide link:
+
+```md
+[Read the full MedPack AI architecture and user guide](docs/MedPack_AI_How_It_Works_Guide.pdf)
+```
+
+---
+
+## Why This Is Strong as a Portfolio Project
+
+MedPack AI demonstrates more than a basic dashboard.
 
 It shows how to combine:
 
@@ -383,7 +518,7 @@ It shows how to combine:
 - healthcare operations thinking
 - supply-chain prioritization
 - agentic AI
-- RAG
+- RAG-style retrieval
 - simulation
 - API design
 - frontend/backend deployment
@@ -391,9 +526,23 @@ It shows how to combine:
 
 The strongest point is that the system does not stop at prediction. It pushes the prediction into an operational decision:
 
-> forecast → risk → queue → escalation → audit trail
+```text
+forecast -> risk -> queue -> escalation -> audit trail
+```
 
 That is the difference between a model demo and a workflow demo.
+
+---
+
+## Suggested Portfolio Pitch
+
+**MedPack AI is an agentic hospital supply-chain control tower.**
+
+It predicts which supplies may run short in the next 24 hours, checks the true usable inventory, ranks what the warehouse should pack first, retrieves relevant SOP/recall/substitution guidance, and produces a final command-center recommendation with escalation logic.
+
+The goal is simple:
+
+> Keep nurses at the bedside by making sure the right supplies are packed, staged, transferred, substituted, reordered, or escalated before the shortage becomes a clinical bottleneck.
 
 ---
 
@@ -401,32 +550,20 @@ That is the difference between a model demo and a workflow demo.
 
 High-value next improvements:
 
-1. **Real hospital supply-chain data integration** from ERP, inventory, scan, and purchasing feeds.
+1. **Real hospital supply-chain integration** from ERP, inventory, scan, and purchasing feeds.
 2. **Live barcode/UDI integration** with real scanner events instead of simulated movement.
-3. **More realistic forecasting** using time-series features, holidays, department-specific seasonality, and backtesting.
+3. **More realistic forecasting** using time-series features, holidays, department seasonality, and backtesting.
 4. **Model monitoring** with forecast error, drift detection, and confidence bands.
 5. **Role-based views** for warehouse staff, charge nurse, supply-chain manager, and executive leadership.
 6. **Automated escalation workflow** through Slack, Teams, email, or ticketing systems.
-7. **Better RAG knowledge ingestion** from real SOP PDFs, supplier contracts, recall bulletins, and policy manuals.
+7. **Better RAG ingestion** from real SOP PDFs, supplier contracts, recall bulletins, and policy manuals.
 8. **Optimization under constraints** such as limited staff, limited carts, limited shift time, and competing urgent requests.
 9. **Simulation history** so what-if scenarios can be compared over time.
 10. **Deployment hardening** with authentication, logging, rate limits, secrets management, and production database storage.
-11. **Production Vector Database**: We currently use a lightweight in-memory string-matching search for RAG to bypass free-tier PaaS (e.g., Railway) memory limits. A production iteration would re-introduce ChromaDB, Pinecone, or Weaviate for large-scale SOP ingestion.
+11. **Production vector database** using ChromaDB, Pinecone, Weaviate, or another scalable retrieval layer for larger SOP ingestion.
 
 ---
 
-## Suggested Project Title
+## Project Title
 
 **MedPack AI: Predicting Hospital Supply Shortages and Prioritizing Warehouse Packing Before Bedside Risk**
-
----
-
-## Portfolio Pitch
-
-**MedPack AI is an agentic hospital supply-chain control tower.**
-
-It predicts which supplies may run short in the next 24 hours, checks the true usable inventory, ranks what the warehouse should pack first, retrieves relevant SOP/recall/substitution guidance through RAG, and produces a final command-center recommendation with escalation logic.
-
-The goal is simple:
-
-> Keep nurses at the bedside by making sure the right supplies are packed, staged, transferred, or escalated before the shortage becomes a clinical bottleneck.
