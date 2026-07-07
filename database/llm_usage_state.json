@@ -1,14 +1,14 @@
 {
   "provider": "Groq",
   "model": "llama-3.3-70b-versatile",
-  "prompt_tokens": 795,
-  "completion_tokens": 280,
-  "total_tokens": 1075,
-  "tokens_used": 1075,
+  "prompt_tokens": 1068,
+  "completion_tokens": 297,
+  "total_tokens": 1365,
+  "tokens_used": 1365,
   "estimated": false,
   "token_usage_source": "groq_usage",
   "source_note": "groq_committee_rewrite_response_received",
   "last_call_status": "success",
-  "call_id": "Groq:llama-3.3-70b-versatile:1783381685391374300:1075",
-  "timestamp": 1783381685.3915586
+  "call_id": "Groq:llama-3.3-70b-versatile:1783460241221580200:1365",
+  "timestamp": 1783460241.221737
 }

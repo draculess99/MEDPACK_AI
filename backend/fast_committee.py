@@ -21,6 +21,11 @@ from backend.stage3_action_plan import build_stage3_action_plan
 from backend.stage4_roi import build_stage4_roi_analysis
 from backend.stage5_command_center import build_stage5_command_center
 
+try:
+    from backend.rag_manager import rag_manager
+except ImportError:
+    rag_manager = None
+
 
 def _as_float(value: Any, default: float = 0.0) -> float:
     try:
@@ -192,6 +197,7 @@ def build_fast_committee_payload(telemetry: Mapping[str, Any]) -> Dict[str, Any]
         "tokens_used": 0,
         "fallback_mode": True,
         "mode_note": "Freeze Fix v3: fast local committee endpoint used. No Groq, Gemini, streaming, joblib model load, or remote LLM call was made.",
+        "rag_knowledge": rag_manager.query_rag(f"{item} in {dept}") if rag_manager else "",
     }
 
     return {

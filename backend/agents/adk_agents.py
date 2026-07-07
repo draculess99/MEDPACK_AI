@@ -210,9 +210,9 @@ def _try_remote_groq_summary(
         ("demand_forecast_agent", "You are the Demand Forecast Agent. Analyze demand in under 3 sentences.", f"Context:\n{base_data}"),
         ("inventory_risk_agent", "You are the Inventory Risk Agent. Assess shortage risk using usable stock in under 3 sentences.", None),
         ("packing_priority_agent", "You are the Packing Priority Agent. Recommend packing action in under 3 sentences.", None),
-        ("clinical_safety_agent", "You are the Clinical Safety Agent. Evaluate patient-safety impact in under 3 sentences.", None),
-        ("final_recommendation_agent", "You are the Final Recommendation Agent. Issue a concise action plan in under 4 sentences.", None),
-        ("committee_summary", "You are the Committee Summarizer. Provide a concise 2-sentence summary.", None),
+        ("clinical_safety_agent", "You are the Clinical Safety Agent. Evaluate patient-safety impact in under 3 sentences. You MUST explicitly quote and apply any RAG policies provided in the context.", None),
+        ("final_recommendation_agent", "You are the Final Recommendation Agent. Issue a concise action plan in under 4 sentences. You MUST explicitly quote and apply any RAG knowledge/policies provided, even as a backup plan.", None),
+        ("committee_summary", "You are the Committee Summarizer. Provide a concise 2-sentence summary. You MUST incorporate and quote the RAG policies in your summary.", None),
     ]
 
     history = ""
@@ -242,7 +242,7 @@ def _try_remote_gemini_summary(
     url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model_name}:generateContent?key={api_key}"
     prompt = {
         "role": "MedPack AI remote LLM committee summarizer",
-        "instruction": "Create a concise hospital supply-chain decision summary. Do not invent facts. Use the provided ML prediction, shortage risk, packing priority, and memory state.",
+        "instruction": "Create a concise hospital supply-chain decision summary. Do not invent facts. Use the provided ML prediction, shortage risk, packing priority, and memory state. You MUST explicitly quote and incorporate the RAG knowledge/policies provided in the context.",
         "telemetry": telemetry,
         "prediction": prediction_result,
         "shortage_risk": shortage_result,

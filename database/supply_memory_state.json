@@ -1,11 +1,11 @@
 {
   "forecast_horizon_hours": 24,
   "memory_update_interval_minutes": 5,
-  "rolling_usage_avg": 3.75,
-  "last_prediction_delta": 5.0,
-  "trend_direction": "increasing",
-  "last_predicted_demand": 10.0,
-  "last_actual_usage": 15.0,
-  "last_updated": "2026-07-07T16:32:47.846322",
-  "memory_reasoning": "Actual usage (15.0) compared to rolling average (0.0) indicates a 'increasing' trend. Prediction delta is 5.0 units."
+  "rolling_usage_avg": 0.0,
+  "last_prediction_delta": 0.0,
+  "trend_direction": "stable",
+  "last_predicted_demand": 0.0,
+  "last_actual_usage": 0.0,
+  "last_updated": "2026-07-07T17:29:01.979650",
+  "memory_reasoning": "Initialized supply memory."
 }

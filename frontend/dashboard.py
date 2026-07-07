@@ -498,6 +498,19 @@ def _build_tiny_groq_context(telemetry_payload, local_result):
     stage5 = local_result.get("stage5_command_center", {}) if isinstance(local_result, dict) else {}
     committee = local_result.get("committee", {}) if isinstance(local_result, dict) else {}
 
+    # Force inject RAG directly from frontend to avoid backend restart issues
+    rag_text = committee.get("rag_knowledge", "")
+    if not rag_text:
+        try:
+            from backend.rag_manager import rag_manager
+            item = telemetry_payload.get("item_name", "")
+            dept = telemetry_payload.get("department", "")
+            if rag_manager:
+                rag_text = rag_manager.query_rag(f"{item} in {dept}")
+        except Exception:
+            pass
+    committee["rag_knowledge"] = rag_text
+
     tiny = {
         "selected_case": {
             "department": telemetry_payload.get("department"),
@@ -540,6 +553,7 @@ def _build_tiny_groq_context(telemetry_payload, local_result):
             "roi_ratio": _pick_existing(stage4, "roi_ratio", "roi"),
             "summary": _compact_for_groq(_pick_existing(stage4, "summary", "finance_summary", default=""), max_chars=260),
         },
+        "rag_knowledge": committee.get("rag_knowledge", ""),
         "stage5_command": {
             "priority_code": _pick_existing(stage5, "priority_code"),
             "command_status": _pick_existing(stage5, "command_status"),
@@ -553,7 +567,7 @@ def _build_tiny_groq_context(telemetry_payload, local_result):
             "inventory_risk_agent": _compact_for_groq(_pick_existing(committee, "inventory_risk_agent", default=""), max_chars=280),
             "packing_priority_agent": _compact_for_groq(_pick_existing(committee, "packing_priority_agent", default=""), max_chars=280),
             "clinical_safety_agent": _compact_for_groq(_pick_existing(committee, "clinical_safety_agent", default=""), max_chars=280),
-            "final_recommendation_agent": _compact_for_groq(_pick_existing(committee, "final_recommendation_agent", default=""), max_chars=360),
+            "final_recommendation_agent": _compact_for_groq(_pick_existing(committee, "final_recommendation_agent", default="") + f" BACKUP POLICY: {rag_text}", max_chars=500),
             "committee_summary": _compact_for_groq(_pick_existing(committee, "committee_summary", default=""), max_chars=360),
         },
     }
@@ -730,7 +744,7 @@ def _groq_llm_committee_rewrite(telemetry_payload, local_result):
     system_prompt = (
         "You are MedPack AI's hospital supply-chain control-tower committee. "
         "Make the response sound like a professional LLM advisor, not a dry rule engine. "
-        "Use only the supplied facts. Do not invent vendors, patients, diagnoses, or exact hospital policy. "
+        "Use only the supplied facts. Do not invent vendors, patients, or diagnoses. "
         "Be decisive, practical, and concise. Return ONLY valid JSON with the exact keys requested."
     )
     user_prompt = f"""
@@ -739,6 +753,7 @@ Rewrite the local rule-based committee output into a natural Groq-powered adviso
 Tone: confident hospital operations control tower, clear and human, but not overly long.
 Style: 2-4 sentences per agent, with specific action language.
 Important: weave in Stage 3 supplier/transfer/substitute intelligence, Stage 4 cost/waste/ROI evidence, and Stage 5 command-center priority/action-card logic when present.
+CRITICAL: Do NOT summarize the RAG policy away. You MUST explicitly state the exact substitution rule (e.g., "Substitute with Pediatric IV Kits") in the Final Recommendation!
 
 Return valid JSON only with these exact string fields:
 - demand_forecast_agent
@@ -1661,6 +1676,23 @@ with col1:
                         
                     st.markdown("#### 📝 Committee Consensus Summary")
                     st.success(committee["committee_summary"])
+                    with st.expander("🛠️ DEBUG: RAG Knowledge Received", expanded=True):
+                        # Use the exact same logic here so the debug panel shows exactly what Groq sees
+                        debug_rag_text = committee.get("rag_knowledge", "")
+                        if not debug_rag_text:
+                            try:
+                                from backend.rag_manager import rag_manager
+                                item = request_payload.get("item_name", "")
+                                dept = request_payload.get("department", "")
+                                if rag_manager:
+                                    debug_rag_text = rag_manager.query_rag(f"{item} in {dept}")
+                            except Exception:
+                                pass
+                        
+                        st.write(f"RAG Payload: {debug_rag_text or 'EMPTY/NONE'}")
+                        with open("rag_debug_log.txt", "w") as f:
+                            f.write(str(debug_rag_text or 'EMPTY/NONE'))
+                    
                     mode_actual = str(committee.get("actual_agent_mode", "local"))
                     tokens_used = int(committee.get("tokens_used", 0) or 0)
                     # Groq usage is recorded at the moment the HTTP response arrives, so do not
