@@ -30,6 +30,7 @@ The result is a practical logistics app for a hospital supply room or warehouse 
 - **Shortage-risk classification** into `Low`, `Medium`, `High`, and `Critical`.
 - **Packing-priority optimizer** that weighs shortage gap, clinical criticality, patient acuity, department importance, supplier delay, usage rate, and pack time.
 - **Top 5 Supplies to Pack First** queue now powered by the same backend ML/rules/optimizer pipeline as the main decision flow.
+- **Stage 1 Control Tower upgrade:** lot/UDI/barcode traceability, expiration/recall/PAR alerts, scan-event simulator, dynamic PAR recommendation, and packing task lifecycle.
 - **Five-agent committee** for demand, inventory risk, packing priority, clinical safety, and final recommendation.
 - **Transparent JSON memory** that logs prediction deltas, rolling usage averages, trend direction, and event history.
 - **No PHI design**: only operational signals are used; no names, patient IDs, MRNs, diagnoses, or individual patient records are stored.
@@ -49,6 +50,11 @@ backend/server.py  ────────────────┐
         ├── backend/shortage_rules.py│  deterministic safety thresholds
         ├── backend/packing_optimizer.py
         ├── backend/packing_queue.py │  real top-5 packing queue
+        ├── backend/traceability.py  │  lot/UDI/barcode/expiration fields
+        ├── backend/compliance_rules.py
+        ├── backend/scan_events.py
+        ├── backend/par_recommendation.py
+        ├── backend/task_manager.py
         ├── backend/supply_memory.py │  JSON memory + audit trail
         └── backend/agents/adk_agents.py
 ```
@@ -195,6 +201,11 @@ See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the full Railway/Render-style guide.
 | `/api/supply-memory` | GET | Current memory state |
 | `/api/update-supply-memory` | POST | Update memory from actual usage |
 | `/api/supply-memory-events` | GET | Recent audit events |
+| `/api/compliance-alerts` | GET/POST | Stage 1 below-PAR, expiration, recall, and cold-chain alerts |
+| `/api/scan-event` | POST | Simulate barcode/UDI scan movement and update stock |
+| `/api/scan-events` | GET | Recent scan-event audit log |
+| `/api/par-recommendation` | POST | Dynamic PAR and max-stock recommendation |
+| `/api/packing-tasks` | GET/POST/PATCH | Create and update packing task lifecycle |
 
 ---
 
@@ -324,3 +335,70 @@ The Streamlit frontend sends the active sidebar values to the backend. Departmen
 
 This remains a local, zero-token expert-system flow unless Remote LLM Mode is explicitly enabled and configured.
 "# MEDPACK_AI" 
+
+
+## Stage 4: Cost, Waste & ROI Executive Dashboard
+
+Stage 4 adds an executive-value layer on top of the Stage 3 supplier/transfer plan. It estimates shortage dollars at risk, waste and expiry exposure, emergency-order premium, transfer labor cost, overstock/carrying cost, labor-time value, and net ROI-style value. These values are demo estimates for capstone/portfolio storytelling, not audited hospital finance numbers.
+
+New endpoints:
+
+```text
+GET  /api/stage4-reference-data
+POST /api/stage4-roi-analysis
+```
+
+New dashboard areas:
+
+```text
+💰 Stage 4: Cost, Waste & ROI Executive Dashboard
+💰 Stage 4 Standalone Cost, Waste & ROI Executive View
+💰 Stage 4 Finance
+```
+
+
+## Stage 5 Agentic Command Center
+
+Stage 5 converts the forecast, usable-stock logic, supplier/transfer decisions, and ROI view into a final command-center packet with priority code, command status, response window, owner, escalation owner, action cards, handoff packet, audit checklist, and final commander decision.
+
+
+## Stage 6 - What-If Surge Simulator
+
+Stage 6 adds a scenario simulator that stress-tests the selected supply item and department under operational shocks, then runs the adjusted case through the existing Stage 2-5 control tower.
+
+Scenarios included:
+
+- ED Surge +40%
+- ICU Respiratory Spike
+- Flu Season Demand
+- Supplier Delay +5 Days
+- Mass Casualty Mode
+- Weekend Staffing Constraint
+- Surgery Schedule Spike
+
+The simulator compares baseline vs scenario:
+
+- predicted 24-hour demand
+- true usable-stock shortage gap
+- command priority shift
+- net value / ROI impact
+- Stage 5 action-card queue
+
+New endpoints:
+
+```text
+GET  /api/stage6-scenarios
+POST /api/stage6-whatif-simulator
+```
+
+New dashboard section:
+
+```text
+🌪️ Stage 6 What-If Surge Simulator
+```
+
+Stage 6 is local/deterministic and does not require Groq/Gemini tokens.
+
+## Groq 413 Compact Prompt Fix
+
+Groq rewrite mode now sends a compact control-tower context instead of the full nested dashboard state. This fixes `413 Payload Too Large` failures that prevented Groq from returning token usage and left the token meter at zero. Optional settings: `MEDPACK_GROQ_CONTEXT_MAX_CHARS=6500` and `MEDPACK_GROQ_MAX_TOKENS=650`.

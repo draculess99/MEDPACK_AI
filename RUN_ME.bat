@@ -9,7 +9,7 @@ echo ==========================================
 
 echo This starts BOTH backend and frontend from app.py.
 echo Backend:   http://127.0.0.1:5001/health
-echo Dashboard: http://127.0.0.1:8502
+echo Dashboard: http://127.0.0.1:8503
 echo.
 
 where python >nul 2>nul

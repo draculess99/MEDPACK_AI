@@ -54,6 +54,7 @@ def ensure_directories():
     os.makedirs("backend/agents", exist_ok=True)
     os.makedirs("frontend", exist_ok=True)
     os.makedirs("tests", exist_ok=True)
+    os.makedirs("database", exist_ok=True)
 
 def generate_synthetic_data(num_rows=2000):
     ensure_directories()
@@ -235,6 +236,12 @@ def generate_inventory_state():
                 "clinical_criticality": criticality
             })
             
+    try:
+        from backend.traceability import enrich_inventory_records
+        state = enrich_inventory_records(state)
+    except Exception:
+        pass
+
     with open(inventory_path, "w") as f:
         json.dump(state, f, indent=2)
 

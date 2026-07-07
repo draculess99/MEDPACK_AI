@@ -11,6 +11,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from backend.model import load_model_and_predict
 from backend.shortage_rules import calculate_shortage_risk
+from backend.usable_stock import build_usable_stock_analysis
 from backend.packing_optimizer import calculate_priority_and_pack_quantity
 
 
@@ -189,21 +190,31 @@ def build_packing_queue(
     limit: int = 5,
     max_records: int = 50,
     scenario: Optional[Mapping[str, Any]] = None,
+    transfer_inventory_records: Optional[Iterable[Mapping[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """Return a sorted, sidebar-responsive packing queue.
 
-    Department chooses the supply universe. Operational sliders change demand
-    pressure, shortage severity, pack quantity, priority score, and sometimes row order.
+    Stage 2 upgrade: each row is now scored against usable stock instead of
+    raw total stock. Expired/recalled units and active task reservations are
+    removed before shortage risk is calculated. Transfer candidates from other
+    departments are also surfaced.
     """
     scenario_clean = _clean_scenario(scenario)
     scored_records: List[Dict[str, Any]] = []
+    all_records = list(inventory_records)
+    all_transfer_records = list(transfer_inventory_records) if transfer_inventory_records is not None else all_records
 
-    for rec in list(inventory_records)[:max_records]:
+    for rec in all_records[:max_records]:
         telemetry = _apply_sidebar_scenario(rec, scenario_clean)
         multiplier, pressure_note = _scenario_pressure_multiplier(telemetry, scenario_clean)
 
         predicted = load_model_and_predict(telemetry) * multiplier
-        shortage = calculate_shortage_risk(predicted, telemetry.get("current_stock", 0))
+        usable_analysis = build_usable_stock_analysis(
+            telemetry,
+            predicted_24h_demand=predicted,
+            inventory_records=all_transfer_records,
+        )
+        shortage = usable_analysis.get("shortage_risk_using_usable_stock", {})
         priority = calculate_priority_and_pack_quantity(
             telemetry.get("item_name", "Unknown Item"),
             telemetry.get("department", "Unknown Department"),
@@ -215,15 +226,28 @@ def build_packing_queue(
             "item_name": telemetry.get("item_name", "Unknown Item"),
             "department": telemetry.get("department", "Unknown Department"),
             "item_category": telemetry.get("item_category", "Unknown"),
-            "current_stock": shortage["current_stock"],
-            "predicted_24h_demand": round(shortage["predicted_24h_demand"], 2),
-            "shortage_gap": round(shortage["shortage_gap"], 2),
-            "coverage_ratio": round(shortage["coverage_ratio"], 3),
-            "risk_level": shortage["risk_level"],
+            "stock_basis": "usable_stock",
+            "total_stock": usable_analysis.get("total_stock", telemetry.get("current_stock", 0)),
+            "current_stock": shortage.get("current_stock", usable_analysis.get("usable_stock", 0)),
+            "usable_stock": usable_analysis.get("usable_stock", 0),
+            "unsafe_stock": usable_analysis.get("unsafe_stock", 0),
+            "expired_stock": usable_analysis.get("expired_stock", 0),
+            "recalled_stock": usable_analysis.get("recalled_stock", 0),
+            "active_task_reserved_stock": usable_analysis.get("active_task_reserved_stock", 0),
+            "wrong_location_stock": usable_analysis.get("wrong_location_stock", 0),
+            "transfer_candidate_stock": usable_analysis.get("transfer_candidate_stock", 0),
+            "effective_stock_after_transfer": usable_analysis.get("effective_stock_after_transfer", 0),
+            "predicted_24h_demand": round(shortage.get("predicted_24h_demand", predicted), 2),
+            "shortage_gap": round(shortage.get("shortage_gap", 0), 2),
+            "true_shortage_gap": usable_analysis.get("true_shortage_gap", shortage.get("shortage_gap", 0)),
+            "post_transfer_gap": usable_analysis.get("post_transfer_gap", shortage.get("shortage_gap", 0)),
+            "coverage_ratio": round(shortage.get("coverage_ratio", 0), 3),
+            "risk_level": shortage.get("risk_level", "Low"),
             "recommended_pack_quantity": priority["recommended_pack_quantity"],
             "priority_score": priority["priority_score"],
             "escalation_required": "Yes" if priority["escalation_required"] else "No",
             "recommended_action": priority["recommended_action"],
+            "stage2_action": usable_analysis.get("recommended_stage2_action", ""),
             "scenario_pressure_score": round(multiplier, 2),
             "pressure_note": pressure_note,
         })
@@ -233,7 +257,7 @@ def build_packing_queue(
         key=lambda row: (
             risk_rank.get(row["risk_level"], 0),
             row["priority_score"],
-            row["shortage_gap"],
+            row["true_shortage_gap"],
             row["scenario_pressure_score"],
         ),
         reverse=True,

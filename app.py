@@ -14,10 +14,11 @@ if os.path.exists(".env"):
 
 from backend.data_loader import ensure_directories, load_or_generate_data, generate_inventory_state
 from backend.model import train_model
+from backend.traceability import ensure_traceability_fields
 
 # Default Ports
 BACKEND_PORT = int(os.environ.get("MEDPACK_BACKEND_PORT", 5001))
-FRONTEND_PORT = int(os.environ.get("MEDPACK_FRONTEND_PORT", 8502))
+FRONTEND_PORT = int(os.environ.get("MEDPACK_FRONTEND_PORT", 8503))
 FRONTEND_HOST = os.environ.get("MEDPACK_FRONTEND_HOST", "127.0.0.1")
 API_BASE_URL = os.environ.get("MEDPACK_API_BASE_URL", f"http://127.0.0.1:{BACKEND_PORT}")
 
@@ -33,6 +34,7 @@ def main():
     print("[1/3] Checking training datasets...")
     df = load_or_generate_data()
     generate_inventory_state()
+    ensure_traceability_fields()
     print(f"Dataset ready. Total records: {len(df)}")
     
     # 3. Train ML Model if missing
@@ -47,14 +49,18 @@ def main():
     print(f"[3/3] Launching Flask API Backend on port {BACKEND_PORT}...")
     env = os.environ.copy()
     env["MEDPACK_BACKEND_PORT"] = str(BACKEND_PORT)
+    # Freeze Fix v3: keep the demo committee local and non-streaming even if
+    # the user's .env contains USE_LLM_AGENTS=true and API keys.
+    env["MEDPACK_FORCE_LOCAL_COMMITTEE"] = "true"
+    env["MEDPACK_ALLOW_FULL_COMMITTEE_ROUTE"] = "false"
+    env["MEDPACK_ALLOW_COMMITTEE_STREAM"] = "false"
+    env["USE_LLM_AGENTS"] = "false"
+    env["DEFAULT_AGENT_MODE"] = "local"
     
     # Launch server
     backend_proc = subprocess.Popen(
         [sys.executable, "-m", "backend.server"],
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
+        env=env
     )
     
     # Wait for backend to start up
@@ -72,10 +78,7 @@ def main():
             "--server.address", FRONTEND_HOST,
             "--server.headless", "false"
         ],
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
+        env=env
     )
     
     print("\n----------------------------------------------------")

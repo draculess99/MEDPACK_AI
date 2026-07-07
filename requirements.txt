@@ -9,3 +9,4 @@ joblib
 requests
 pytest
 gunicorn
+chromadb
