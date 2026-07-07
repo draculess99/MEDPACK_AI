@@ -50,6 +50,12 @@ def main():
     print(f"[3/3] Launching Flask API Backend on port {BACKEND_PORT}...")
     env = os.environ.copy()
     env["MEDPACK_BACKEND_PORT"] = str(BACKEND_PORT)
+    
+    # CRITICAL FIX: Railway injects $PORT which is meant for the frontend.
+    # If we pass $PORT to Flask, Flask binds to it instead of Streamlit!
+    if "PORT" in env:
+        del env["PORT"]
+        
     # Freeze Fix v3: keep the demo committee local and non-streaming even if
     # the user's .env contains USE_LLM_AGENTS=true and API keys.
     env["MEDPACK_FORCE_LOCAL_COMMITTEE"] = "true"
