@@ -1,5 +1,4 @@
 import os
-import chromadb
 from typing import List, Dict
 
 # Mock Documents
@@ -68,59 +67,42 @@ MOCK_DOCUMENTS = [
 
 class RAGManager:
     _instance = None
-    _collection = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(RAGManager, cls).__new__(cls)
-            cls._instance._init_chroma()
         return cls._instance
-
-    def _init_chroma(self):
-        # Initialize ChromaDB client (in memory for simplicity/demo, or persistent)
-        self.client = chromadb.Client()
-        
-        # Create or get collection
-        try:
-            self._collection = self.client.get_collection(name="medpack_knowledge")
-        except:
-            self._collection = self.client.create_collection(name="medpack_knowledge")
-            
-            # Load documents
-            if self._collection.count() == 0:
-                texts = [doc["text"] for doc in MOCK_DOCUMENTS]
-                ids = [doc["id"] for doc in MOCK_DOCUMENTS]
-                metadatas = [doc["metadata"] for doc in MOCK_DOCUMENTS]
-                self._collection.add(
-                    documents=texts,
-                    metadatas=metadatas,
-                    ids=ids
-                )
 
     def query_rag(self, query_text: str, n_results: int = 2) -> str:
         """
-        Query the RAG knowledge base and return a formatted string of the results.
+        Query the RAG knowledge base using a lightweight mock search instead of ChromaDB.
+        This prevents Railway containers from crashing due to ONNX memory limits.
         """
-        if not self._collection:
-            return "No RAG knowledge base available."
-
-        try:
-            results = self._collection.query(
-                query_texts=[query_text],
-                n_results=n_results
-            )
-            
-            docs = results.get("documents", [[]])[0]
-            if not docs:
-                return "No relevant RAG documents found."
+        query_words = set(query_text.lower().split())
+        
+        # Score documents based on how many words match
+        scored_docs = []
+        for doc in MOCK_DOCUMENTS:
+            text_lower = doc["text"].lower()
+            score = sum(1 for word in query_words if word in text_lower)
+            if score > 0:
+                scored_docs.append((score, doc["text"]))
                 
-            formatted_docs = []
-            for i, doc in enumerate(docs):
-                formatted_docs.append(f"[RAG Document {i+1}]: {doc}")
+        if not scored_docs:
+            # Fallback to the first two documents if no direct match
+            scored_docs = [(1, MOCK_DOCUMENTS[0]["text"]), (1, MOCK_DOCUMENTS[1]["text"])]
             
-            return "\n".join(formatted_docs)
-        except Exception as e:
-            return f"RAG Query Failed: {str(e)}"
+        # Sort by score descending
+        scored_docs.sort(key=lambda x: x[0], reverse=True)
+        
+        # Take top n_results
+        top_docs = [doc_text for score, doc_text in scored_docs[:n_results]]
+        
+        formatted_docs = []
+        for i, doc in enumerate(top_docs):
+            formatted_docs.append(f"[RAG Document {i+1}]: {doc}")
+        
+        return "\n".join(formatted_docs)
 
 # Global instance for easy import
 rag_manager = RAGManager()
