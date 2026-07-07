@@ -17,9 +17,10 @@ from backend.model import train_model
 from backend.traceability import ensure_traceability_fields
 
 # Default Ports
+# Railway sets $PORT automatically for the web process
+FRONTEND_PORT = int(os.environ.get("PORT", os.environ.get("MEDPACK_FRONTEND_PORT", 8503)))
 BACKEND_PORT = int(os.environ.get("MEDPACK_BACKEND_PORT", 5001))
-FRONTEND_PORT = int(os.environ.get("MEDPACK_FRONTEND_PORT", 8503))
-FRONTEND_HOST = os.environ.get("MEDPACK_FRONTEND_HOST", "127.0.0.1")
+FRONTEND_HOST = os.environ.get("MEDPACK_FRONTEND_HOST", "0.0.0.0") # Must bind to 0.0.0.0 in production
 API_BASE_URL = os.environ.get("MEDPACK_API_BASE_URL", f"http://127.0.0.1:{BACKEND_PORT}")
 
 def main():
