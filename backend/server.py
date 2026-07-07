@@ -385,32 +385,37 @@ def packing_queue():
     else:
         payload = request.args.to_dict()
 
-    limit = int(payload.get("limit", 5))
-    max_records = int(payload.get("max_records", 50))
-    department = payload.get("department", None)
+    try:
+        limit = int(payload.get("limit", 5))
+        max_records = int(payload.get("max_records", 50))
+        department = payload.get("department", None)
 
-    path = "database/inventory_state.json"
-    if os.path.exists(path):
-        inventory_all_records = ensure_traceability_fields()
-    else:
-        inventory_all_records = inventory().get_json() or []
+        path = "database/inventory_state.json"
+        if os.path.exists(path):
+            inventory_all_records = ensure_traceability_fields()
+        else:
+            inventory_all_records = inventory().get_json() or []
 
-    inventory_records = inventory_all_records
-    if department:
-        inventory_records = [rec for rec in inventory_all_records if rec.get("department") == department]
+        inventory_records = inventory_all_records
+        if department:
+            inventory_records = [rec for rec in inventory_all_records if rec.get("department") == department]
 
-    queue = build_packing_queue(
-        inventory_records,
-        limit=limit,
-        max_records=max_records,
-        scenario=payload,
-        transfer_inventory_records=inventory_all_records,
-    )
-    return jsonify({
-        "department": department,
-        "scenario_used": payload,
-        "queue": queue,
-    })
+        queue = build_packing_queue(
+            inventory_records,
+            limit=limit,
+            max_records=max_records,
+            scenario=payload,
+            transfer_inventory_records=inventory_all_records,
+        )
+        return jsonify({
+            "department": department,
+            "scenario_used": payload,
+            "queue": queue,
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
 
 @app.route("/api/reset", methods=["POST"])
 def reset_system():
