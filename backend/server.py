@@ -33,7 +33,7 @@ from flask import Response
 app = Flask(__name__)
 CORS(app)
 
-PORT = int(os.environ.get("PORT", os.environ.get("MEDPACK_BACKEND_PORT", 5001)))
+PORT = int(os.environ.get("MEDPACK_BACKEND_PORT", 5001))
 
 
 def _truthy(value):
