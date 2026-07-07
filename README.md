@@ -189,32 +189,43 @@ USE_LLM_AGENTS=false
 
 ## App Architecture
 
-```text
-frontend/dashboard.py
-        │
-        ▼
-backend/server.py
-        │
-        ├── backend/model.py                    # ML demand forecast
-        ├── backend/shortage_rules.py           # shortage thresholds
-        ├── backend/usable_stock.py             # true usable inventory
-        ├── backend/packing_optimizer.py        # pack quantity + priority
-        ├── backend/packing_queue.py            # Top 5 supplies queue
-        ├── backend/traceability.py             # lot / UDI / barcode fields
-        ├── backend/compliance_rules.py         # PAR, expiry, recall alerts
-        ├── backend/scan_events.py              # scan movement simulation
-        ├── backend/par_recommendation.py       # dynamic PAR logic
-        ├── backend/task_manager.py             # packing task lifecycle
-        ├── backend/transfer_optimizer.py       # internal transfer options
-        ├── backend/supplier_risk.py            # supplier delay/risk scoring
-        ├── backend/substitution_engine.py      # substitute supply options
-        ├── backend/stage4_roi.py               # cost/waste/ROI dashboard
-        ├── backend/stage5_command_center.py    # final command packet
-        ├── backend/stage6_whatif_simulator.py  # surge simulation
-        ├── backend/rag_manager.py              # ChromaDB RAG knowledge
-        ├── backend/supply_memory.py            # JSON memory/audit trail
-        └── backend/agents/adk_agents.py        # agent committee
+```mermaid
+graph TD
+    UI["frontend/dashboard.py<br/>(Streamlit)"] --> API["backend/server.py<br/>(Flask API)"]
+    
+    API --> Forecast["backend/model.py<br/>ML demand forecast"]
+    API --> Shortage["backend/shortage_rules.py<br/>shortage thresholds"]
+    API --> Usable["backend/usable_stock.py<br/>true usable inventory"]
+    API --> Priority["backend/packing_optimizer.py<br/>priority logic"]
+    API --> Trace["backend/traceability.py<br/>UDI & batch lifecycle"]
+    
+    API --> Action["backend/stage3_action_plan.py<br/>supplier and transfer"]
+    API --> ROI["backend/stage4_roi.py<br/>waste and cost"]
+    API --> Cmd["backend/stage5_command_center.py<br/>escalation and owners"]
+    API --> Sim["backend/stage6_whatif_simulator.py<br/>stress testing"]
+    
+    API --> RAG["backend/rag_manager.py<br/>mock document DB"]
+    API --> Agents["backend/agents/adk_agents.py<br/>LLM committee wrappers"]
+
+    Forecast --> Shortage
+    Usable --> Shortage
+    Shortage --> Priority
+    Priority --> Action
+    Action --> ROI
+    ROI --> Cmd
+    Cmd --> Agents
+    RAG --> Agents
 ```
+
+---
+
+## Screenshots
+
+To showcase the system for a portfolio, we recommend saving your screenshots to a `docs/` folder and linking them here:
+
+- `![Dashboard Overview](docs/dashboard_overview.png)` - *Show the main supply list and telemetry panel.*
+- `![Committee Output](docs/committee_output.png)` - *Show the Final Recommendation Agent and RAG injection.*
+- `![Cost & Waste Analysis](docs/stage4_roi.png)` - *Show the Stage 4 ROI metrics.*
 
 ---
 
@@ -400,6 +411,7 @@ High-value next improvements:
 8. **Optimization under constraints** such as limited staff, limited carts, limited shift time, and competing urgent requests.
 9. **Simulation history** so what-if scenarios can be compared over time.
 10. **Deployment hardening** with authentication, logging, rate limits, secrets management, and production database storage.
+11. **Production Vector Database**: We currently use a lightweight in-memory string-matching search for RAG to bypass free-tier PaaS (e.g., Railway) memory limits. A production iteration would re-introduce ChromaDB, Pinecone, or Weaviate for large-scale SOP ingestion.
 
 ---
 
