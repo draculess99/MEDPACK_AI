@@ -8,7 +8,7 @@ from backend.agents.adk_agents import run_committee
 telemetry = {
     "item_name": "IV Start Kit",
     "department": "Emergency Department",
-    "selected_model": "llama-3.3-70b-versatile"
+    "selected_model": "openai/gpt-oss-120b"
 }
 prediction = {"predicted_24h_demand": 15.0}
 shortage = {"usable_stock": 1, "true_shortage_gap": 14.0, "risk_level": "High"}

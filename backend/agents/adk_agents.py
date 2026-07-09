@@ -37,7 +37,7 @@ def _normalise_groq_model(model_name: str) -> str:
     model_name = (model_name or "").strip()
     deprecated = {"llama3-8b-8192", "llama3-70b-8192"}
     if not model_name or model_name in deprecated:
-        return "llama-3.3-70b-versatile"
+        return "openai/gpt-oss-120b"
     return model_name
 
 

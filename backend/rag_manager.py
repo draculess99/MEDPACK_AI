@@ -196,6 +196,10 @@ class RAGManager:
         for doc in docs:
             self._chunks.extend(_chunk_text(doc["text"], doc["filename"]))
 
+        if os.environ.get("MEDPACK_LOW_MEMORY", "false").lower() in {"1", "true", "yes", "y", "on"}:
+            self._use_faiss = False
+            return
+
         current_hash = _docs_hash(docs)
 
         # Check if we can reuse a cached FAISS index

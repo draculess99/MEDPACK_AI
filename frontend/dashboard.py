@@ -261,7 +261,7 @@ with st.sidebar.container(border=True):
                 st.error("Groq API key not detected in this Streamlit process. Groq will fall back to local mode and the token meter will correctly stay at 0.")
             selected_model = st.selectbox(
                 "Select Remote Model",
-                ["llama-3.3-70b-versatile"],
+                ["openai/gpt-oss-120b", "qwen/qwen3.6-27b"],
                 index=0,
                 on_change=reset_state
             )
@@ -424,7 +424,7 @@ def _normalise_groq_model_for_ui(model_name):
     model_name = (model_name or "").strip()
     deprecated = {"llama3-8b-8192", "llama3-70b-8192"}
     if not model_name or model_name in deprecated:
-        return "llama-3.3-70b-versatile"
+        return "openai/gpt-oss-120b"
     return model_name
 
 
@@ -733,7 +733,7 @@ def _groq_llm_committee_rewrite(telemetry_payload, local_result):
         raise RuntimeError("GROQ_API_KEY is not set in your .env/environment.")
 
     model_name = _normalise_groq_model_for_ui(
-        telemetry_payload.get("selected_model") or os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        telemetry_payload.get("selected_model") or os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
     )
     timeout_seconds = int(os.environ.get("MEDPACK_GROQ_UI_TIMEOUT_SECONDS", "10") or 10)
     timeout_seconds = max(4, min(timeout_seconds, 20))
