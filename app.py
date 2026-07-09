@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import time
+import webbrowser
 
 # Automatically load variables from .env file into the environment
 if os.path.exists(".env"):
@@ -94,6 +95,13 @@ def main():
     print("----------------------------------------------------")
     print("Press Ctrl+C to terminate both servers.")
     print("----------------------------------------------------")
+
+    # Auto-open browser (skip on Railway / production where PORT is set)
+    if not os.environ.get("RAILWAY_ENVIRONMENT") and not os.environ.get("PORT"):
+        url = f"http://127.0.0.1:{FRONTEND_PORT}"
+        print(f"Opening browser at {url} ...")
+        time.sleep(2)  # give Streamlit a moment to bind
+        webbrowser.open(url)
     
     # Monitor processes
     try:

@@ -1498,8 +1498,8 @@ with col1:
                 # Stage 2 Forecast + Usable Stock Panel
                 if usable_analysis:
                     st.markdown("---")
-                    st.markdown("### 🧮 Stage 2: Forecast vs Usable Stock")
-                    st.caption("This is the Stage 2 connection: the forecast is now compared against safe, usable stock instead of raw total stock.")
+                    st.markdown("### 🧮 Demand Forecast vs Usable Stock")
+                    st.caption("The forecast is now compared against safe, usable stock instead of raw total stock.")
                     u1, u2, u3, u4, u5, u6 = st.columns(6)
                     u1.metric("Forecast Demand", f"{usable_analysis.get('predicted_24h_demand', 0):.1f}")
                     u2.metric("Total Stock", usable_analysis.get("total_stock", 0))
@@ -1507,7 +1507,7 @@ with col1:
                     u4.metric("Unsafe Stock", usable_analysis.get("unsafe_stock", 0))
                     u5.metric("Task-Reserved", usable_analysis.get("active_task_reserved_stock", 0))
                     u6.metric("True Gap", f"{usable_analysis.get('true_shortage_gap', 0):.1f}")
-                    st.warning(usable_analysis.get("recommended_stage2_action", "No Stage 2 action returned."))
+                    st.warning(usable_analysis.get("recommended_stage2_action", "No usable-stock action returned."))
                     notes = usable_analysis.get("safety_notes", [])
                     if notes:
                         st.caption(" | ".join(notes))
@@ -1520,8 +1520,8 @@ with col1:
                 stage3_plan = result.get("stage3_action_plan", {})
                 if stage3_plan:
                     st.markdown("---")
-                    st.markdown("### 🚚 Stage 3: Supplier + Transfer Intelligence")
-                    st.caption("This is the Stage 3 connection: after the app finds the true shortage, it decides whether to transfer, order, substitute, or escalate.")
+                    st.markdown("### 🚚 Supply Chain Response Plan")
+                    st.caption("After finding the true shortage, the app decides whether to transfer, order, substitute, or escalate.")
                     transfer = stage3_plan.get("transfer_recommendation", {}) or {}
                     supplier = stage3_plan.get("supplier_risk", {}) or {}
                     substitute = stage3_plan.get("substitute_options", {}) or {}
@@ -1530,7 +1530,7 @@ with col1:
                     s3b.metric("Transfer Qty", transfer.get("recommended_transfer_qty", 0))
                     s3c.metric("Post-Transfer Gap", f"{stage3_plan.get('post_transfer_gap', 0):.1f}")
                     s3d.metric("Supplier Status", supplier.get("supplier_status", "N/A"))
-                    st.success(stage3_plan.get("final_recommendation", "No Stage 3 recommendation returned."))
+                    st.success(stage3_plan.get("final_recommendation", "No supply-chain recommendation returned."))
                     sequence = stage3_plan.get("recommended_sequence", [])
                     if sequence:
                         st.markdown("#### Action Sequence")
@@ -1568,16 +1568,16 @@ with col1:
                 stage4_roi = result.get("stage4_roi_analysis", {})
                 if stage4_roi:
                     st.markdown("---")
-                    st.markdown("### 💰 Stage 4: Cost, Waste & ROI Executive Dashboard")
-                    st.caption("This is the Stage 4 connection: the operational recommendation is translated into estimated dollars at risk, waste exposure, action cost, and value protected.")
+                    st.markdown("### 💰 Financial Impact & ROI Dashboard")
+                    st.caption("The operational recommendation is translated into estimated dollars at risk, waste exposure, action cost, and value protected.")
                     r1, r2, r3, r4, r5 = st.columns(5)
                     r1.metric("Shortage Risk $", f"${stage4_roi.get('shortage_risk_value', 0):,.0f}")
                     r2.metric("Waste Risk $", f"${(stage4_roi.get('waste_risk') or {}).get('total_waste_risk_value', 0):,.0f}")
                     r3.metric("Action Cost", f"${stage4_roi.get('estimated_action_cost', 0):,.0f}")
                     r4.metric("Net Value", f"${stage4_roi.get('net_value_estimate', 0):,.0f}")
                     r5.metric("ROI Ratio", f"{stage4_roi.get('roi_ratio', 0):,.2f}x")
-                    st.success(stage4_roi.get("executive_recommendation", "No Stage 4 recommendation returned."))
-                    with st.expander("Stage 4 details: financial assumptions and value breakdown", expanded=False):
+                    st.success(stage4_roi.get("executive_recommendation", "No financial recommendation returned."))
+                    with st.expander("Financial details: assumptions and value breakdown", expanded=False):
                         b1, b2 = st.columns(2)
                         with b1:
                             st.markdown("**Value Protected**")
@@ -1606,15 +1606,15 @@ with col1:
                 stage5_command = result.get("stage5_command_center", {})
                 if stage5_command:
                     st.markdown("---")
-                    st.markdown("### 🧭 Stage 5: Agentic Command Center")
-                    st.caption("This is the final command layer: it converts Stages 1-4 into priority status, owners, response windows, action cards, escalation, and an executive handoff.")
+                    st.markdown("### 🧭 Command Center")
+                    st.caption("The final command layer: converts all analysis into priority status, owners, response windows, action cards, escalation, and an executive handoff.")
                     z1, z2, z3, z4, z5 = st.columns(5)
                     z1.metric("Priority", stage5_command.get("priority_code", "P3"))
                     z2.metric("Command Status", stage5_command.get("command_status", "Monitor"))
                     z3.metric("Response Window", f"{stage5_command.get('response_window_minutes', 0)} min")
                     z4.metric("Open Actions", stage5_command.get("open_action_count", 0))
                     z5.metric("Net Value", f"${stage5_command.get('net_value_estimate', 0):,.0f}")
-                    st.success(stage5_command.get("commander_decision", "No Stage 5 commander decision returned."))
+                    st.success(stage5_command.get("commander_decision", "No command-center decision returned."))
                     h1, h2 = st.columns(2)
                     with h1:
                         st.markdown("**Primary Owner**")
@@ -1624,11 +1624,11 @@ with col1:
                         st.write(stage5_command.get("escalation_owner", "N/A"))
                     action_cards = stage5_command.get("action_cards", [])
                     if action_cards:
-                        with st.expander("Stage 5 action cards / handoff queue", expanded=True):
+                        with st.expander("Action cards / handoff queue", expanded=True):
                             display_card_cols = ["action_id", "owner", "status", "due_minutes", "action", "success_metric"]
                             df_cards = pd.DataFrame(action_cards)
                             st.dataframe(df_cards[[c for c in display_card_cols if c in df_cards.columns]], use_container_width=True)
-                    with st.expander("Stage 5 audit checklist and command briefing", expanded=False):
+                    with st.expander("Audit checklist and command briefing", expanded=False):
                         st.markdown("**Audit checklist**")
                         checklist = stage5_command.get("audit_checklist", [])
                         if checklist:
@@ -1669,8 +1669,8 @@ with col1:
                         with st.expander("👤 Cost / Waste / ROI Agent Insights", expanded=True):
                             st.write(committee.get("stage4_financial_impact_agent", result.get("stage4_roi_analysis", {}).get("control_tower_summary", "Stage 4 financial view unavailable.")))
                     if committee.get("stage5_command_center_agent") or result.get("stage5_command_center"):
-                        with st.expander("👤 Stage 5 Command Center Agent Insights", expanded=True):
-                            st.write(committee.get("stage5_command_center_agent", result.get("stage5_command_center", {}).get("control_tower_summary", "Stage 5 command center unavailable.")))
+                        with st.expander("👤 Command Center Agent Insights", expanded=True):
+                            st.write(committee.get("stage5_command_center_agent", result.get("stage5_command_center", {}).get("control_tower_summary", "Command center unavailable.")))
                     with st.expander("👤 Final Recommendation Agent Insights", expanded=True):
                         st.write(committee["final_recommendation_agent"])
                         
@@ -1793,11 +1793,11 @@ with col1:
 
     # Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5 Control Tower Panels
     st.markdown("---")
-    st.header("🏥 Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5 Control Tower Upgrade")
-    st.caption("Stage 1 added traceability/tasks. Stage 2 calculates true usable stock. Stage 3 recommends transfers/suppliers/substitutes. Stage 4 turns the plan into cost, waste, ROI, and executive value metrics. Stage 5 wraps everything into a command-center action plan.")
+    st.header("🏥 Full Pipeline Control Tower")
+    st.caption("Traceability → Usable Stock → Supply Chain Response → Financial Impact → Command Center. Each panel below runs independently against the backend.")
 
-    st.markdown("#### 🧮 Stage 2 Standalone Usable-Stock Check")
-    st.caption("Use this panel when you want to prove the difference between total stock and usable stock for the selected sidebar item.")
+    st.markdown("#### 🧮 Usable-Stock Check")
+    st.caption("Shows the difference between total stock on paper and what is actually usable for the selected item.")
     try:
         stage2_res = api_post("/api/usable-stock-analysis", telemetry, timeout=20)
         if stage2_res.status_code == 200:
@@ -1819,8 +1819,8 @@ with col1:
     except Exception as e:
         st.error(f"Stage 2 usable-stock panel unavailable: {e}")
 
-    st.markdown("#### 🚚 Stage 3 Standalone Supplier + Transfer Action Plan")
-    st.caption("Use this panel to prove the app can move from shortage detection to a fix: transfer internally, order from a vendor, use a substitute, or escalate.")
+    st.markdown("#### 🚚 Supply Chain Action Plan")
+    st.caption("From shortage detection to fix: transfer internally, order from a vendor, use a substitute, or escalate.")
     try:
         stage3_res = api_post("/api/stage3-action-plan", telemetry, timeout=25)
         if stage3_res.status_code == 200:
@@ -1834,8 +1834,8 @@ with col1:
             g3.metric("Transfer Qty", transfer.get("recommended_transfer_qty", 0))
             g4.metric("Post-Transfer Gap", f"{stage3.get('post_transfer_gap', 0):.1f}")
             g5.metric("Supplier", (supplier.get("recommended_vendor") or {}).get("vendor_name", "N/A"))
-            st.success(stage3.get("final_recommendation", "No Stage 3 recommendation returned."))
-            with st.expander("Stage 3 details: transfer, suppliers, substitutes", expanded=False):
+            st.success(stage3.get("final_recommendation", "No supply-chain recommendation returned."))
+            with st.expander("Details: transfer, suppliers, substitutes", expanded=False):
                 d1, d2, d3 = st.columns(3)
                 with d1:
                     st.markdown("**Transfer**")
@@ -1861,8 +1861,8 @@ with col1:
         st.error(f"Stage 3 action-plan panel unavailable: {e}")
 
 
-    st.markdown("#### 💰 Stage 4 Standalone Cost, Waste & ROI Executive View")
-    st.caption("Use this panel to show the business value: shortage dollars at risk, waste exposure, emergency premium, action cost, and net estimated value.")
+    st.markdown("#### 💰 Cost, Waste & ROI Executive View")
+    st.caption("Business value at a glance: shortage dollars at risk, waste exposure, emergency premium, action cost, and net estimated value.")
     try:
         stage4_res = api_post("/api/stage4-roi-analysis", telemetry, timeout=25)
         if stage4_res.status_code == 200:
@@ -1874,8 +1874,8 @@ with col1:
             q4.metric("Action Cost", f"${stage4.get('estimated_action_cost', 0):,.0f}")
             q5.metric("Net Value", f"${stage4.get('net_value_estimate', 0):,.0f}")
             q6.metric("ROI", f"{stage4.get('roi_ratio', 0):,.2f}x")
-            st.success(stage4.get("executive_recommendation", "No Stage 4 executive recommendation returned."))
-            with st.expander("Stage 4 full financial breakdown", expanded=False):
+            st.success(stage4.get("executive_recommendation", "No executive recommendation returned."))
+            with st.expander("Full financial breakdown", expanded=False):
                 st.json(stage4)
         else:
             st.error(f"Stage 4 API error: {stage4_res.status_code} - {stage4_res.text}")
@@ -1885,8 +1885,8 @@ with col1:
 
 
 
-    st.markdown("#### 🧭 Stage 5 Standalone Agentic Command Center")
-    st.caption("Use this panel to show the final command layer: priority code, owner, response window, action cards, escalation owner, audit checklist, and handoff packet.")
+    st.markdown("#### 🧭 Command Center")
+    st.caption("The final command layer: priority code, owner, response window, action cards, escalation owner, audit checklist, and handoff packet.")
     try:
         stage5_res = api_post("/api/stage5-command-center", telemetry, timeout=25)
         if stage5_res.status_code == 200:
@@ -1898,14 +1898,14 @@ with col1:
             v4.metric("Window", f"{stage5.get('response_window_minutes', 0)} min")
             v5.metric("Open Actions", stage5.get("open_action_count", 0))
             v6.metric("Net Value", f"${stage5.get('net_value_estimate', 0):,.0f}")
-            st.success(stage5.get("commander_decision", "No Stage 5 command decision returned."))
+            st.success(stage5.get("commander_decision", "No command decision returned."))
             cards = stage5.get("action_cards", [])
             if cards:
-                with st.expander("Stage 5 action-card queue", expanded=True):
+                with st.expander("Action-card queue", expanded=True):
                     df_cards = pd.DataFrame(cards)
                     cols = ["action_id", "owner", "status", "due_minutes", "action", "success_metric"]
                     st.dataframe(df_cards[[c for c in cols if c in df_cards.columns]], use_container_width=True)
-            with st.expander("Stage 5 full command packet", expanded=False):
+            with st.expander("Full command packet", expanded=False):
                 st.json(stage5)
         else:
             st.error(f"Stage 5 API error: {stage5_res.status_code} - {stage5_res.text}")
@@ -1913,8 +1913,8 @@ with col1:
         st.error(f"Stage 5 command-center panel unavailable: {e}")
 
 
-    st.markdown("#### 🌪️ Stage 6 What-If Surge Simulator")
-    st.caption("Stress-test the selected item/department under ED surge, ICU spike, flu season, supplier delay, mass-casualty, weekend staffing, or surgery spike. The scenario is pushed through Stages 2-5.")
+    st.markdown("#### 🌪️ What-If Surge Simulator")
+    st.caption("Stress-test the selected item/department under ED surge, ICU spike, flu season, supplier delay, mass-casualty, weekend staffing, or surgery spike.")
     try:
         stage6_ref_res = api_get("/api/stage6-scenarios", timeout=10)
         if stage6_ref_res.status_code == 200:
