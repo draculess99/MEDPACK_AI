@@ -232,20 +232,35 @@ Optional remote LLM mode can be configured for Groq/Gemini-style summaries, but 
 
 ## RAG / SOP Guidance Layer
 
-MedPack AI includes a lightweight retrieval layer for operational context.
+MedPack AI includes a **Retrieval-Augmented Generation (RAG)** layer backed by a **FAISS vector store** for semantic search over hospital policy documents.
 
-Examples of guidance that can influence the recommendation:
+### How It Works
 
-- supply-room SOPs
-- supplier service-level agreements
-- recall warnings
-- substitution rules
-- escalation policies
-- department-specific restrictions
+1. Policy documents (Markdown / text files) are placed in `data/rag_docs/`.
+2. On first API request, the RAG manager chunks the documents, generates embeddings using the `all-MiniLM-L6-v2` Sentence-Transformer model, and builds a FAISS index.
+3. The index is persisted to `data/rag_index/` and automatically rebuilt when the source documents change.
+4. Queries to `/api/rag` return the most semantically relevant chunks from across all policy documents.
+5. If `faiss-cpu` or `sentence-transformers` are not installed, the system falls back to a lightweight keyword search — the app never crashes.
 
-This matters because supply-chain decisions are not purely numerical. A hospital may have stock on paper, but the safest action may still be to escalate, transfer, substitute, or avoid the item entirely.
+### Included Policy Documents
 
-Example policy logic:
+| Document | Description |
+|---|---|
+| `privacy_policy.md` | Data handling, PHI avoidance, retention, access controls, HIPAA/FDA notes |
+| `standard_operating_procedures.md` | SOPs for IV kits, surgical masks, saline flushes, wound care, catheters, ventilator circuits, PPE, and general escalation |
+| `supplier_sla_agreements.md` | Service-level agreements for Medline, McKesson, Cardinal Health, and B. Braun — delivery times, emergency terms, penalties |
+| `recall_notices.md` | FDA recall notices for catheters, monitoring leads, exam gloves, and IV extension sets |
+| `escalation_policies.md` | Four-tier escalation matrix (Monitor → Act → Escalate → Command Center) with department-specific rules |
+
+### Adding Your Own Documents
+
+Drop any `.md` or `.txt` file into `data/rag_docs/` and restart the backend. The FAISS index rebuilds automatically.
+
+### Why This Matters
+
+Supply-chain decisions are not purely numerical. A hospital may have stock on paper, but the safest action may still be to escalate, transfer, substitute, or avoid the item entirely.
+
+Example policy logic retrieved by the RAG layer:
 
 ```text
 Do not use recalled stock.
@@ -337,6 +352,12 @@ database/scenario_playbooks.json
 database/cost_assumptions.json
 database/supply_memory_state.json
 database/supply_memory_events.jsonl
+data/rag_docs/privacy_policy.md
+data/rag_docs/standard_operating_procedures.md
+data/rag_docs/supplier_sla_agreements.md
+data/rag_docs/recall_notices.md
+data/rag_docs/escalation_policies.md
+data/rag_index/                          (auto-generated FAISS index)
 ```
 
 ---
@@ -396,6 +417,8 @@ It only uses high-level operational signals such as department, patient volume, 
 | `/api/stage4-roi-analysis` | POST | Cost, waste, and ROI analysis |
 | `/api/stage5-command-center` | POST | Final command-center packet |
 | `/api/stage6-whatif-simulator` | POST | Surge/stress-test simulation |
+| `/api/rag` | POST | Query the RAG knowledge base (FAISS vector search) |
+| `/api/rag/stats` | GET | RAG index statistics (backend, chunk count, sources) |
 
 ---
 
@@ -556,7 +579,7 @@ High-value next improvements:
 4. **Model monitoring** with forecast error, drift detection, and confidence bands.
 5. **Role-based views** for warehouse staff, charge nurse, supply-chain manager, and executive leadership.
 6. **Automated escalation workflow** through Slack, Teams, email, or ticketing systems.
-7. **Better RAG ingestion** from real SOP PDFs, supplier contracts, recall bulletins, and policy manuals.
+7. **PDF RAG ingestion** to support uploading real SOP PDFs, supplier contracts, and scanned policy documents.
 8. **Optimization under constraints** such as limited staff, limited carts, limited shift time, and competing urgent requests.
 9. **Simulation history** so what-if scenarios can be compared over time.
 10. **Deployment hardening** with authentication, logging, rate limits, secrets management, and production database storage.

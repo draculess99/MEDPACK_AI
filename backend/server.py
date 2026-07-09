@@ -711,5 +711,30 @@ def run_medpack_committee_stream():
             
     return Response(generate(), mimetype="application/x-ndjson")
 
+
+@app.route("/api/rag", methods=["POST"])
+def rag_query():
+    """Query the RAG knowledge base.
+
+    Accepts JSON body with ``query`` (required) and optional ``top_k``
+    (default 3).  Returns the most relevant policy/SOP document chunks.
+    """
+    from backend.rag_manager import rag_manager as _rag
+    data = request.get_json(silent=True) or {}
+    query = data.get("query", "").strip()
+    if not query:
+        return jsonify({"error": "Missing 'query' field"}), 400
+    top_k = int(data.get("top_k", 3))
+    results = _rag.retrieve(query, top_k=top_k)
+    return jsonify({"query": query, "results": results})
+
+
+@app.route("/api/rag/stats", methods=["GET"])
+def rag_stats():
+    """Return RAG index statistics (backend type, chunk count, sources)."""
+    from backend.rag_manager import rag_manager as _rag
+    return jsonify(_rag.get_stats())
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=PORT, debug=os.environ.get("FLASK_DEBUG", "0") == "1", threaded=True)
