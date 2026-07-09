@@ -500,27 +500,24 @@ See [`DEPLOYMENT.md`](DEPLOYMENT.md) for a fuller deployment guide.
 
 ---
 
-## Screenshots / Demo Images
+## Screenshots & Demo Guide
 
-Recommended files to add later:
+Save your screenshots in the **`docs/`** directory in the root of the project.
 
-```text
-docs/dashboard_overview.png
-docs/committee_output.png
-docs/stage4_roi.png
-docs/whatif_simulator.png
-docs/command_center.png
-```
+| Filename | Placement in App / What to Capture | Visual Description |
+| :--- | :--- | :--- |
+| `docs/dashboard_overview.png` | **Full Dashboard Overview**: Capture the main interface on load. | Should show the title "MedPack AI", the prediction button, the main inventory table, and the left sidebar with default selections. |
+| `docs/committee_output.png` | **Agentic Committee Panel**: Click "Run MedPack Committee Decision" and capture the results. | Should show the "Agent Execution Flow" diagram (with the step checkmarks) and the expanded agent insights/summaries. |
+| `docs/stage4_roi.png` | **Financial Impact & ROI Dashboard**: Expand the "Stage 4 Finance" tab. | Should display the metric cards for Shortage Risk $, Waste Risk $, Action Cost, Net Value, and the ROI Ratio gauge. |
+| `docs/whatif_simulator.png` | **What-If Surge Simulator**: Open the "Stage 6 Scenarios" tab or run a scenario stress-test. | Should capture the scenario selection, applied modifiers, and the comparison of the surge benchmark metrics. |
+| `docs/command_center.png` | **Command Center Playbook**: Scroll down to the "Stage 5 Playbook" and "Command Center" sections. | Should capture the Priority status indicator (e.g., P1/P2/P3), the Response Window metric, and the Action Cards table. |
 
-Suggested README image links:
-
-```md
+### Embedded Views
 ![Dashboard Overview](docs/dashboard_overview.png)
 ![Committee Output](docs/committee_output.png)
 ![Cost and ROI Dashboard](docs/stage4_roi.png)
 ![What-If Simulator](docs/whatif_simulator.png)
 ![Command Center](docs/command_center.png)
-```
 
 Recommended PDF guide link:
 
