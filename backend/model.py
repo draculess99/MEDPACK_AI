@@ -1,10 +1,5 @@
 import os
 import json
-import joblib
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from backend.data_loader import load_or_generate_data
 
 MODEL_PATH = "models/supply_demand_xgboost.pkl"
@@ -29,6 +24,7 @@ NUMERICAL_COLS = [
 class FallbackModel:
     """A deterministic fallback model using recent_usage_rate, patient_volume, acuity_level, procedure_count, and supplier_delay_days."""
     def predict(self, df):
+        import numpy as np
         preds = []
         for idx, row in df.iterrows():
             recent_usage = row.get("recent_usage_rate", 5.0)
@@ -61,6 +57,10 @@ def preprocess_data(df):
     return df_encoded, categories_maps
 
 def train_model():
+    import numpy as np
+    import joblib
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     print("Training supply demand forecasting model...")
     df = load_or_generate_data()
     
@@ -75,7 +75,7 @@ def train_model():
     use_xgb = False
     try:
         import xgboost as xgb
-        model = xgb.XGBRegressor(n_estimators=40, max_depth=4, learning_rate=0.1, random_state=42, n_jobs=1, verbosity=0)
+        model = xgb.XGBRegressor(n_estimators=20, max_depth=4, learning_rate=0.1, random_state=42, n_jobs=1, verbosity=0)
         model.fit(X_train, y_train)
         use_xgb = True
         print("Successfully trained XGBoost Regressor.")
@@ -83,7 +83,7 @@ def train_model():
         print(f"XGBoost training failed or unavailable ({e}). Falling back to RandomForestRegressor...")
         try:
             from sklearn.ensemble import RandomForestRegressor
-            model = RandomForestRegressor(n_estimators=40, max_depth=6, random_state=42, n_jobs=1)
+            model = RandomForestRegressor(n_estimators=20, max_depth=6, random_state=42, n_jobs=1)
             model.fit(X_train, y_train)
             print("Successfully trained RandomForestRegressor.")
         except Exception as rf_err:
@@ -93,7 +93,7 @@ def train_model():
     # Evaluation
     preds = model.predict(X_test)
     mae = mean_absolute_error(y_test, preds)
-    rmse = np.sqrt(mean_squared_error(y_test, preds))
+    rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
     
     try:
         r2 = r2_score(y_test, preds)
@@ -129,6 +129,9 @@ def load_model_and_predict(telemetry):
     Predict actual_usage_next_24h based on input telemetry.
     telemetry should be a dict containing all features.
     """
+    import numpy as np
+    import pandas as pd
+    import joblib
     global _MODEL_CACHE
     if _MODEL_CACHE is None:
         if not os.path.exists(MODEL_PATH):

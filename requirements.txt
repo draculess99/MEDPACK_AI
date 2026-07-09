@@ -9,5 +9,4 @@ joblib
 requests
 pytest
 gunicorn
-chromadb
 plotly

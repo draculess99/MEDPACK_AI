@@ -1,6 +1,4 @@
 import os
-import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
 
 DEPARTMENTS = [
@@ -57,6 +55,8 @@ def ensure_directories():
     os.makedirs("database", exist_ok=True)
 
 def generate_synthetic_data(num_rows=2000):
+    import pandas as pd
+    import numpy as np
     ensure_directories()
     np.random.seed(42)
     
@@ -131,6 +131,8 @@ def generate_synthetic_data(num_rows=2000):
     return df
 
 def load_or_generate_data():
+    import pandas as pd
+    import numpy as np
     ensure_directories()
     raw_path = "database/raw/kaggle_hospital_supply_chain.csv"
     processed_path = "database/processed/medpack_training_data.csv"
@@ -202,6 +204,7 @@ def load_or_generate_data():
         return generate_synthetic_data()
 
 def generate_inventory_state():
+    import numpy as np
     ensure_directories()
     # Create inventory_state.json which has a snapshot of current stocks for Streamlit
     import json
