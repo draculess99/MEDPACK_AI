@@ -11,6 +11,16 @@ It combines a **Streamlit dashboard**, **Flask API**, **machine-learning demand 
 ```text
 forecast -> shortage risk -> packing queue -> escalation plan -> audit memory
 ```
+---
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Project Links
+
+- **Live Demo:** https://medpackai-production.up.railway.app/
+- **GitHub Repository:** https://github.com/draculess99/MEDPACK_AI/
+- **LinkedIn:** https://www.linkedin.com/in/gammaconsult/
+- **Portfolio:** https://draculess99.github.io/VET-VTO-Forecasting/
 
 ---
 
