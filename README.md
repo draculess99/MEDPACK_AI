@@ -564,7 +564,7 @@ That is the difference between a model demo and a workflow demo.
 
 ---
 
-## Suggested Portfolio Pitch
+## Summary
 
 **MedPack AI is an agentic hospital supply-chain control tower.**
 
