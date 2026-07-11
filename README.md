@@ -20,7 +20,7 @@ forecast -> shortage risk -> packing queue -> escalation plan -> audit memory
 - **Live Demo:** https://medpackai-production.up.railway.app/
 - **GitHub Repository:** https://github.com/draculess99/MEDPACK_AI/
 - **LinkedIn:** https://www.linkedin.com/in/gammaconsult/
-- **Portfolio:** https://draculess99.github.io/VET-VTO-Forecasting/
+- **Portfolio:** https://draculess99.github.io/
 
 ---
 
